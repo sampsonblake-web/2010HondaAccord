@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Tracker - 2010 Honda Accord</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html2canvas for image generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); }
+    .dark .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen pb-12 font-sans transition-colors duration-200">
+
+  <!-- Header / Nav -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xl text-white shadow">
+          <i class="fa-solid fa-car"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight" id="headerBorrower">Brinna Vandruff</h1>
+          <p class="text-xs text-slate-400" id="headerVehicle">2010 Honda Accord Loan</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span id="syncStatus" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 flex items-center gap-1.5 font-medium">
+          <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> <span id="syncText">Synced</span>
+        </span>
+        <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+        <button onclick="openAdminModal()" class="p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold flex items-center gap-1 shadow">
+          <i class="fa-solid fa-lock"></i> Admin
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 mt-6 space-y-6">
+
+    <!-- Hero Balance Card -->
+    <div class="bg-gradient-to-br from-blue-700 to-indigo-900 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+      <div class="absolute -right-6 -bottom-6 opacity-10 text-9xl">
+        <i class="fa-solid fa-car-side"></i>
+      </div>
+      
+      <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
+        <div class="md:col-span-2">
+          <p class="text-xs uppercase tracking-widest text-blue-200 font-semibold mb-1">Current Remaining Balance</p>
+          <div class="text-4xl md:text-5xl font-black mb-2 tracking-tight" id="displayBalance">$0.00</div>
+          
+          <!-- Progress Bar -->
+          <div class="w-full bg-blue-950/60 rounded-full h-3 mb-2 overflow-hidden border border-blue-400/20 p-0.5">
+            <div id="progressBar" class="bg-emerald-400 h-full rounded-full transition-all duration-500 shadow" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between text-xs text-blue-200 font-medium">
+            <span>Paid: <strong id="displayTotalPaid">$0.00</strong></span>
+            <span>Original: <strong id="displayOriginal">$4,500.00</strong></span>
+          </div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex flex-col justify-center border border-white/10 text-center">
+          <p class="text-xs uppercase tracking-wider text-blue-200 font-semibold mb-1">Next Payment Due</p>
+          <div class="text-2xl font-bold text-amber-300" id="displayNextDueDate">--</div>
+          <p class="text-xs text-blue-100 mt-1">Min. Amount: <span class="font-bold text-white" id="displayMinDue">$150.00</span>/mo</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payoff Calculator for Borrower -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-bold flex items-center gap-2 mb-4">
+        <i class="fa-solid fa-calculator text-blue-500"></i> Payoff Accelerator Calculator
+      </h2>
+      <div class="space-y-4">
+        <div>
+          <div class="flex justify-between text-sm font-semibold mb-1">
+            <span>Monthly Payment Amount:</span>
+            <span class="text-blue-600 dark:text-blue-400 text-base font-bold" id="calcPaymentVal">$150/mo</span>
+          </div>
+          <input type="range" id="calcSlider" min="150" max="1000" step="25" value="150" oninput="updateCalculator()" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
+          <div class="flex justify-between text-xs text-slate-400 mt-1">
+            <span>Min $150</span>
+            <span>$500</span>
+            <span>$1,000</span>
+          </div>
+        </div>
+        <div class="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl grid grid-cols-2 gap-4 text-center border border-slate-100 dark:border-slate-800">
+          <div>
+            <p class="text-xs text-slate-400">Estimated Months to Payoff</p>
+            <p class="text-xl font-bold text-slate-800 dark:text-slate-100" id="calcMonths">--</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400">Estimated Payoff Date</p>
+            <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400" id="calcPayoffDate">--</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment History (Read-only for borrower) -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-200 dark:border-slate-700">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold flex items-center gap-2">
+          <i class="fa-solid fa-receipt text-blue-500"></i> Payment History
+        </h2>
+        <span class="text-xs bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-full font-medium" id="historyCount">0 Payments</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-400">
+              <th class="pb-3">Date</th>
+              <th class="pb-3">Amount</th>
+              <th class="pb-3">Method</th>
+              <th class="pb-3">Notes</th>
+              <th class="pb-3 text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ADMIN MODAL -->
+  <div id="adminModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+      
+      <!-- PIN Login view -->
+      <div id="adminPinView" class="p-6 text-center">
+        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-1">Admin Access</h3>
+        <p class="text-xs text-slate-400 mb-4">Enter PIN to manage loan details and record payments</p>
+        <input type="password" id="adminPinInput" placeholder="Enter PIN" class="w-full text-center tracking-widest text-lg p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 mb-4 focus:ring-2 focus:ring-blue-500 outline-none">
+        <div class="flex gap-2">
+          <button onclick="closeAdminModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 font-semibold text-sm">Cancel</button>
+          <button onclick="verifyAdminPin()" class="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-500 shadow">Unlock</button>
+        </div>
+      </div>
+
+      <!-- Admin Dashboard view -->
+      <div id="adminDashboardView" class="hidden">
+        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+          <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i> Admin Controls</h3>
+          <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+          
+          <!-- Record Payment Section -->
+          <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-2xl border border-blue-200 dark:border-blue-800/50 space-y-3">
+            <h4 class="font-bold text-sm text-blue-900 dark:text-blue-300 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle"></i> Record New Payment
+            </h4>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Payment Date</label>
+                <input type="date" id="newPayDate" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Amount ($)</label>
+                <input type="number" id="newPayAmount" placeholder="150.00" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Payment Method</label>
+                <select id="newPayMethod" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+                  <option>Venmo</option>
+                  <option>Zelle</option>
+                  <option>Cash</option>
+                  <option>Check</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Notes</label>
+                <input type="text" id="newPayNotes" placeholder="Monthly installment" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+            </div>
+            <button onclick="handleRecordPayment()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i> Record Payment & Send SMS Receipt
+            </button>
+          </div>
+
+          <!-- Admin Payment Management Section -->
+          <div class="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <h4 class="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-blue-500"></i> Manage Payments & Deletions
+            </h4>
+            <div class="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-slate-50 dark:bg-slate-900">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400">
+                    <th class="pb-1">Date</th>
+                    <th class="pb-1">Amount</th>
+                    <th class="pb-1">Method</th>
+                    <th class="pb-1 text-right">Delete</th>
+                  </tr>
+                </thead>
+                <tbody id="adminHistoryTableBody" class="divide-y divide-slate-200 dark:divide-slate-800">
+                  <!-- Dynamic admin payment rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Settings Section -->
+          <div class="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <h4 class="font-bold text-sm text-slate-700 dark:text-slate-300">Loan Setup & Schedule Settings</h4>
+            
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-slate-500">Original Principal ($)</label>
+                <input type="number" id="cfgOriginal" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Min Monthly Due ($)</label>
+                <input type="number" id="cfgMinDue" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-slate-500">Initial Start Date</label>
+                <input type="date" id="cfgStartDate" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Borrower Phone #</label>
+                <input type="tel" id="cfgPhone" placeholder="1234567890" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-slate-500">Change Admin PIN</label>
+                <input type="password" id="cfgPin" placeholder="New PIN (Leave empty to keep)" class="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900">
+              </div>
+              <div class="flex items-end">
+                <button onclick="saveAdminSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs">
+                  Save Settings
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex gap-2">
+            <button onclick="sendManualReminderSMS()" class="w-1/2 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-xs font-semibold rounded-lg flex items-center justify-center gap-1">
+              <i class="fa-solid fa-bell"></i> Send Due Reminder SMS
+            </button>
+            <button onclick="resetAllData()" class="w-1/2 py-2 bg-red-100 text-red-600 hover:bg-red-200 text-xs font-semibold rounded-lg flex items-center justify-center gap-1">
+              <i class="fa-solid fa-trash-can"></i> Reset All Data
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offscreen Receipt Card Template -->
+  <div class="fixed top-[-9999px] left-[-9999px]">
+    <div id="receiptTemplate" class="w-[450px] bg-white text-slate-800 p-8 rounded-2xl shadow-none border border-slate-200">
+      <div class="text-center border-b pb-4 mb-4">
+        <h2 class="text-xl font-bold text-slate-900">PAYMENT RECEIPT</h2>
+        <p class="text-xs text-slate-500">Vehicle Auto Loan</p>
+      </div>
+      <div class="space-y-2 text-sm mb-6">
+        <div class="flex justify-between"><span class="text-slate-500">Borrower:</span> <span class="font-bold" id="rcptBorrower">Brinna Vandruff</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Vehicle:</span> <span class="font-bold" id="rcptVehicle">2010 Honda Accord</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Date Paid:</span> <span class="font-bold" id="rcptDate">--</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Method:</span> <span class="font-bold" id="rcptMethod">--</span></div>
+      </div>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center mb-6">
+        <p class="text-xs uppercase text-emerald-600 font-semibold">Amount Received</p>
+        <p class="text-3xl font-black text-emerald-700" id="rcptAmount">$0.00</p>
+      </div>
+      <div class="border-t pt-4 space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-slate-500">Remaining Balance:</span> <span class="font-bold text-blue-600" id="rcptBalance">$0.00</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Next Payment Due:</span> <span class="font-bold text-amber-600" id="rcptNextDue">--</span></div>
+      </div>
+      <div class="mt-8 text-center text-xs text-slate-400">
+        Thank you for your payment!
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // JSONbin credentials
+    const JSONBIN_MASTER_KEY = "$2a$10$Yu73nlGe4OqFBeAFJfLmmOX5ZBb4bf0b3LL6zyJe5fO8qpR7QY3bK";
+    const JSONBIN_BIN_ID = "67156f91e4101579ce2a1209";
+
+    // Default Fallback State
+    let loanData = {
+      borrower: "Brinna Vandruff",
+      vehicle: "2010 Honda Accord",
+      originalBalance: 4500,
+      minMonthly: 150,
+      startDate: "2026-11-15",
+      phone: "",
+      adminPin: "1234",
+      payments: []
+    };
+
+    let isAdminLoggedIn = false;
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('newPayDate').valueAsDate = new Date();
+      await fetchCloudData();
+      renderApp();
+    });
+
+    // Helper to set UI status indicator
+    function setSyncStatus(state) {
+      const dot = document.getElementById('syncDot');
+      const text = document.getElementById('syncText');
+      if (state === 'saving') {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 inline-block animate-ping";
+        text.innerText = "Saving...";
+      } else if (state === 'synced') {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
+        text.innerText = "Synced";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-slate-400 inline-block";
+        text.innerText = "Local";
+      }
+    }
+
+    // Fetch latest record from JSONbin v3 endpoint
+    async function fetchCloudData() {
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+          headers: {
+            'X-Master-Key': JSONBIN_MASTER_KEY
+          }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const record = json.record || {};
+          if (record.originalBalance !== undefined) {
+            loanData = {
+              borrower: record.borrower || "Brinna Vandruff",
+              vehicle: record.vehicle || "2010 Honda Accord",
+              originalBalance: Number(record.originalBalance) || 4500,
+              minMonthly: Number(record.minMonthly) || 150,
+              startDate: record.startDate || "2026-11-15",
+              phone: record.phone || "",
+              adminPin: record.adminPin || "1234",
+              payments: Array.isArray(record.payments) ? record.payments : []
+            };
+            localStorage.setItem('accord_loan_data', JSON.stringify(loanData));
+            setSyncStatus('synced');
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("JSONbin fetch error, reading local storage:", e);
+      }
+
+      // Fallback to local storage if API call fails
+      const local = localStorage.getItem('accord_loan_data');
+      if (local) {
+        try {
+          loanData = { ...loanData, ...JSON.parse(local) };
+        } catch (e) {
+          console.error("Localstorage parse error", e);
+        }
+      }
+      setSyncStatus('local');
+    }
+
+    // Save current loanData to JSONbin and LocalStorage
+    async function saveCloudData() {
+      localStorage.setItem('accord_loan_data', JSON.stringify(loanData));
+      setSyncStatus('saving');
+
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSONBIN_MASTER_KEY
+          },
+          body: JSON.stringify(loanData)
+        });
+
+        if (res.ok) {
+          setSyncStatus('synced');
+        } else {
+          setSyncStatus('local');
+        }
+      } catch (e) {
+        console.error("JSONbin save failed:", e);
+        setSyncStatus('local');
+      }
+    }
+
+    // Calculate Due Date based on starting date & payment count
+    function calculateNextDueDate(startDateStr, paymentsCount) {
+      if (!startDateStr) return "--";
+      const [year, month, day] = startDateStr.split('-').map(Number);
+      let targetMonth = (month - 1) + paymentsCount;
+      let targetYear = year + Math.floor(targetMonth / 12);
+      targetMonth = targetMonth % 12;
+
+      const maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const actualDay = Math.min(day, maxDaysInTargetMonth);
+
+      const d = new Date(targetYear, targetMonth, actualDay);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    // Compute balance and payment totals
+    function getTotals() {
+      const totalPaid = loanData.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const balance = Math.max(0, loanData.originalBalance - totalPaid);
+      const nextDue = calculateNextDueDate(loanData.startDate, loanData.payments.length);
+      return { totalPaid, balance, nextDue };
+    }
+
+    // Render Dashboard UI elements
+    function renderApp() {
+      const { totalPaid, balance, nextDue } = getTotals();
+      
+      document.getElementById('headerBorrower').innerText = loanData.borrower;
+      document.getElementById('headerVehicle').innerText = `${loanData.vehicle} Loan`;
+      document.getElementById('displayBalance').innerText = `$${balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('displayTotalPaid').innerText = `$${totalPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('displayOriginal').innerText = `$${Number(loanData.originalBalance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('displayNextDueDate').innerText = nextDue;
+      document.getElementById('displayMinDue').innerText = `$${Number(loanData.minMonthly).toFixed(2)}`;
+
+      const pct = Math.min(100, (totalPaid / loanData.originalBalance) * 100);
+      document.getElementById('progressBar').style.width = `${pct}%`;
+
+      // Borrower History Table (Read-only)
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+      document.getElementById('historyCount').innerText = `${loanData.payments.length} Payments`;
+
+      if (loanData.payments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No payments recorded yet.</td></tr>`;
+      } else {
+        [...loanData.payments].reverse().forEach((p) => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+          tr.innerHTML = `
+            <td class="py-3 font-medium">${p.date}</td>
+            <td class="py-3 font-bold text-emerald-600 dark:text-emerald-400">$${Number(p.amount).toFixed(2)}</td>
+            <td class="py-3 text-xs text-slate-500">${p.method}</td>
+            <td class="py-3 text-xs text-slate-400">${p.notes || '-'}</td>
+            <td class="py-3 text-right">
+              <span class="text-xs text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check"></i> Paid</span>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Admin Management Payment Table
+      const adminTbody = document.getElementById('adminHistoryTableBody');
+      adminTbody.innerHTML = '';
+      if (loanData.payments.length === 0) {
+        adminTbody.innerHTML = `<tr><td colspan="4" class="py-3 text-center text-slate-400">No payments to display.</td></tr>`;
+      } else {
+        [...loanData.payments].reverse().forEach((p, idx) => {
+          const actualIndex = loanData.payments.length - 1 - idx;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="py-2 font-medium">${p.date}</td>
+            <td class="py-2 font-bold text-emerald-600">$${Number(p.amount).toFixed(2)}</td>
+            <td class="py-2 text-slate-500">${p.method}</td>
+            <td class="py-2 text-right">
+              <button onclick="deletePayment(${actualIndex})" class="text-red-500 hover:text-red-700 px-2 py-1 bg-red-50 dark:bg-red-950/40 rounded border border-red-200 font-bold">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          `;
+          adminTbody.appendChild(tr);
+        });
+      }
+
+      // Sync Admin Inputs
+      document.getElementById('cfgOriginal').value = loanData.originalBalance;
+      document.getElementById('cfgMinDue').value = loanData.minMonthly;
+      document.getElementById('cfgStartDate').value = loanData.startDate;
+      document.getElementById('cfgPhone').value = loanData.phone || '';
+
+      updateCalculator();
+    }
+
+    // Payoff Calculator logic
+    function updateCalculator() {
+      const { balance } = getTotals();
+      const monthly = Number(document.getElementById('calcSlider').value);
+      document.getElementById('calcPaymentVal').innerText = `$${monthly}/mo`;
+
+      if (balance <= 0) {
+        document.getElementById('calcMonths').innerText = "0 Months";
+        document.getElementById('calcPayoffDate').innerText = "PAID OFF!";
+        return;
+      }
+
+      const monthsLeft = Math.ceil(balance / monthly);
+      document.getElementById('calcMonths').innerText = `${monthsLeft} Month${monthsLeft > 1 ? 's' : ''}`;
+
+      const now = new Date();
+      now.setMonth(now.getMonth() + monthsLeft);
+      document.getElementById('calcPayoffDate').innerText = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    // Admin Access Management
+    function openAdminModal() {
+      document.getElementById('adminModal').classList.remove('hidden');
+      if (!isAdminLoggedIn) {
+        document.getElementById('adminPinView').classList.remove('hidden');
+        document.getElementById('adminDashboardView').classList.add('hidden');
+      } else {
+        document.getElementById('adminPinView').classList.add('hidden');
+        document.getElementById('adminDashboardView').classList.remove('hidden');
+      }
+    }
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.add('hidden');
+    }
+
+    function verifyAdminPin() {
+      const input = document.getElementById('adminPinInput').value;
+      if (input === loanData.adminPin) {
+        isAdminLoggedIn = true;
+        document.getElementById('adminPinInput').value = '';
+        renderApp();
+        openAdminModal();
+      } else {
+        alert("Incorrect PIN");
+      }
+    }
+
+    // Record Payment Event
+    async function handleRecordPayment() {
+      const date = document.getElementById('newPayDate').value;
+      const amount = Number(document.getElementById('newPayAmount').value);
+      const method = document.getElementById('newPayMethod').value;
+      const notes = document.getElementById('newPayNotes').value;
+
+      if (!date || isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount and date.");
+        return;
+      }
+
+      loanData.payments.push({ date, amount, method, notes });
+      await saveCloudData();
+      renderApp();
+
+      // Render Receipt Card Offscreen
+      const { balance, nextDue } = getTotals();
+      document.getElementById('rcptBorrower').innerText = loanData.borrower;
+      document.getElementById('rcptVehicle').innerText = loanData.vehicle;
+      document.getElementById('rcptDate').innerText = date;
+      document.getElementById('rcptMethod').innerText = method;
+      document.getElementById('rcptAmount').innerText = `$${amount.toFixed(2)}`;
+      document.getElementById('rcptBalance').innerText = `$${balance.toFixed(2)}`;
+      document.getElementById('rcptNextDue').innerText = nextDue;
+
+      const element = document.getElementById('receiptTemplate');
+      
+      html2canvas(element).then(async (canvas) => {
+        // Trigger file download
+        const link = document.createElement('a');
+        link.download = `Receipt_${loanData.borrower.replace(/\s+/g, '_')}_${date}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        // Copy to system clipboard
+        try {
+          canvas.toBlob(async (blob) => {
+            if (navigator.clipboard && window.ClipboardItem) {
+              const item = new ClipboardItem({ "image/png": blob });
+              await navigator.clipboard.write([item]);
+              alert("Receipt PNG saved! Copied to clipboard for SMS.");
+            }
+          });
+        } catch (err) {
+          console.warn("Clipboard write skipped:", err);
+        }
+
+        // Trigger SMS application launch
+        const msg = encodeURIComponent(`Receipt: Received $${amount.toFixed(2)} for ${loanData.vehicle}. Remaining balance: $${balance.toFixed(2)}. Next payment due: ${nextDue}. Thank you!`);
+        window.location.href = `sms:${loanData.phone}?body=${msg}`;
+      });
+
+      document.getElementById('newPayAmount').value = '';
+      closeAdminModal();
+    }
+
+    // Delete Payment
+    async function deletePayment(index) {
+      if (confirm("Delete this payment? Balance and due date will automatically adjust.")) {
+        loanData.payments.splice(index, 1);
+        await saveCloudData();
+        renderApp();
+      }
+    }
+
+    // Save Admin Config
+    async function saveAdminSettings() {
+      loanData.originalBalance = Number(document.getElementById('cfgOriginal').value) || loanData.originalBalance;
+      loanData.minMonthly = Number(document.getElementById('cfgMinDue').value) || loanData.minMonthly;
+      loanData.startDate = document.getElementById('cfgStartDate').value || loanData.startDate;
+      loanData.phone = document.getElementById('cfgPhone').value.trim();
+
+      const newPin = document.getElementById('cfgPin').value.trim();
+      if (newPin !== '') {
+        loanData.adminPin = newPin;
+        document.getElementById('cfgPin').value = '';
+      }
+
+      await saveCloudData();
+      renderApp();
+      alert("Admin settings updated and synced successfully!");
+    }
+
+    function sendManualReminderSMS() {
+      const { balance, nextDue } = getTotals();
+      const msg = encodeURIComponent(`Friendly Reminder: Your monthly payment of $${loanData.minMonthly} for the ${loanData.vehicle} is due on ${nextDue}. Balance remaining: $${balance.toFixed(2)}. Thank you!`);
+      window.location.href = `sms:${loanData.phone}?body=${msg}`;
+    }
+
+    async function resetAllData() {
+      if (confirm("Are you sure you want to reset all payment history?")) {
+        loanData.payments = [];
+        await saveCloudData();
+        renderApp();
+      }
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      const icon = document.getElementById('themeIcon');
+      if (document.documentElement.classList.contains('dark')) {
+        icon.className = 'fa-solid fa-sun';
+      } else {
+        icon.className = 'fa-solid fa-moon';
+      }
+    }
+  </script>
+</body>
+</html>
